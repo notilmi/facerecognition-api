@@ -1,0 +1,101 @@
+org: username
+app: facerecognition
+service: facerecognition-api
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  region: us-east-1
+  s3:
+    # Eventual additional properties in camel case
+    bucketOne:
+      # Supported properties are the same ones as supported by CF resource for S3 bucket
+      # See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html
+      name: lksfacerecognitionapi
+      versioningConfiguration:
+        Status: Enabled
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: "arn:aws:logs:*:*:*"
+
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:*
+      Resource:
+        - "arn:aws:s3:::lksfacerecognitionapi/*"
+
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+      Resource:
+        - "*"
+
+    - Effect: Allow
+      Action:
+        - rekognition:IndexFaces
+        - rekognition:SearchFacesByImage
+      Resource: "*"
+resources:
+  Resources:
+    DynamoDBTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: lksfacerecognitiontable
+        AttributeDefinitions:
+          - AttributeName: RekognitionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: RekognitionId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+
+    RekognitionCollection:
+      Type: "AWS::Rekognition::Collection"
+      Properties:
+        CollectionId: "facecollection"
+
+functions:
+  register-face:
+    runtime: nodejs16.x
+    handler: api/handler.registerFace
+    environment:
+      S3_BUCKET_NAME: "lksfacerecognitionapi"
+    events:
+      - httpApi:
+          path: /face/register
+          method: post
+
+  recognize-face:
+    runtime: nodejs16.x
+    handler: api/handler.recognizeFace
+    environment:
+      S3_BUCKET_NAME: "lksfacerecognitionapi"
+      REKOGNITION_COLLECTION: "facecollection"
+      DYNAMODB_TABLE_NAME: "lksfacerecognitiontable"
+    events:
+      - httpApi:
+          path: /face/recognize
+          method: post
+
+  index-face:
+    runtime: python3.10
+    handler: index/handler.lambda_handler
+    environment:
+      S3_BUCKET_NAME: "lksfacerecognitionapi"
+      REKOGNITION_COLLECTION: "facecollection"
+      DYNAMODB_TABLE_NAME: "lksfacerecognitiontable"
+    events:
+      - s3:
+          bucket: lksfacerecognitionapi
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: index/
+            - suffix: .jpg

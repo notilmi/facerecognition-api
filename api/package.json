@@ -1,0 +1,17 @@
+{
+  "name": "facerecognition-api",
+  "description": "A Simple API To Use AWS Rekognition For Face Recognition",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.484.0",
+    "@aws-sdk/client-rekognition": "^3.484.0",
+    "aws-sdk": "^2.1526.0"
+  },
+  "devDependencies": {
+    "jest": "^26.6.3"
+  },
+  "scripts": {
+    "test": "jest"
+  }
+}
