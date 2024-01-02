@@ -10,7 +10,6 @@ This Services Requires AWS Lambda, DynamoDB, API Gateway, S3, & Rekognition to s
 ```
 $ serverless deploy
 ```
-3.
 
 ### Deployment
 
